@@ -53,6 +53,8 @@ GasStationModel/
 ├── GasStation.FileOperations/ # Работа с файлами
 │   ├── Classes/
 │   │   ├── CsvConfigReader.cs
+|   |   ├── SimulationConfig.cs
+|   |   ├── SimulationStats.cs
 │   │   └── Logger.cs
 │   └── Interfaces/
 │       ├── IConfigReader.cs
