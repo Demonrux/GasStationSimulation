@@ -1,0 +1,64 @@
+﻿using GasStation.Core.Models;
+using GasStation.Core.Utils;
+using GasStation.FileOperations.Interfaces;
+using GasStation.Services.Interfaces;
+
+namespace GasStation.Services.Generators
+{
+    public class CarGenerator : IGenerator<Car>
+    {
+        private readonly object _counterLock = new object();
+        private int _generatedCount;
+        private readonly TimeSpan _generationInterval;
+        private readonly ILogger _logger;
+        private int _carId;
+
+        public int GeneratedCount
+        {
+            get { lock (_counterLock) return _generatedCount; }
+        }
+
+        public event Action<Car> Generated;
+
+        public CarGenerator(TimeSpan generationInterval, ILogger logger)
+        {
+            _generationInterval = generationInterval;
+            _logger = logger;
+        }
+
+        public async Task StartGeneration(CancellationToken cancellationToken)
+        {
+            _logger.LogInfo("Car генератор запущен");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var delay = TimingCalculator.CarGeneration(_generationInterval);
+                    await Task.Delay(delay, cancellationToken);
+
+                    int newCarId;
+                    lock (_counterLock)
+                    {
+                        newCarId = ++_carId;
+                        _generatedCount++;
+                    }
+
+                    var car = new Car(newCarId);
+                    _logger.LogInfo($"Машина {car.Id} сгенерирована (нужно {car.RequiredFuel}л)");
+
+                    Generated?.Invoke(car);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogWarning("Генерация машин остановлена");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Ошибка генерации: {ex.Message}");
+                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); 
+                }
+            }
+        }
+    }
+}

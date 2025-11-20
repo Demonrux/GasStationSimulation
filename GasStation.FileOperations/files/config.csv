@@ -1,0 +1,7 @@
+﻿SimulationDurationSeconds,10
+CarGenerationInterval,2
+FuelTruckGenerationInterval, 20
+RefuellerCount,1
+CashierCount,1
+FuelTankCapacity,1500
+InitialFuelLevel,300
