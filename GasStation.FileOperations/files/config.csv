@@ -1,7 +1,12 @@
-﻿SimulationDurationSeconds,10
-CarGenerationInterval,2
-FuelTruckGenerationInterval, 20
-RefuellerCount,1
-CashierCount,1
-FuelTankCapacity,1500
-InitialFuelLevel,300
+SimulationDurationSeconds,300
+CarGenerationInterval,1
+FuelTruckGenerationInterval, 10
+RefuellerCount,6
+CashierCount,4
+FuelTankCapacity,3500
+InitialFuelLevel,500
+FuelPurchasePrice,37.50
+FuelSellPrice,63.90
+RefuellerSalaryPerCar,65.00
+CashierSalaryPerCar,60.00
+InitialBalance, 10000
