@@ -159,9 +159,16 @@ namespace GasStation.Engine.Classes
             finally
             {
                 _logger.LogInfo("Моделирование завершено");
+                (_logger as IDisposable)?.Dispose();
                 _isRunning = false;
             }
         }
+        
+         public void Dispose()
+         {
+             (_logger as IDisposable)?.Dispose();
+             _cancellationTokenSourse?.Dispose();
+         }
 
         private void CollectAndLogStatistics()
         {
