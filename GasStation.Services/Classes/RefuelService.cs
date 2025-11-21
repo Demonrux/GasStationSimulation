@@ -16,7 +16,6 @@ namespace GasStation.Services.Classes
         private readonly ILogger _logger;
         private int _processedCount;
 
-        public string ServiceType => "Refuel";
         public int ProcessedCount => _processedCount;
         public event Action<Car> ItemProcessed;
 
