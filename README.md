@@ -19,52 +19,53 @@
 
 ```text
 GasStationModel/
-├── GasStation.Core/           # Основные модели и утилиты
-│   ├── Models/
-│   │   ├── Car.cs
-│   │   ├── FuelTruck.cs
-│   │   ├── FuelTank.cs
-│   │   ├── CarQueue.cs
-│   │   └── Constants.cs
-│   ├── Workers/
-│   │   ├── Worker.cs
-│   │   ├── Refueller.cs
-│   │   ├── Cashier.cs
-│   │   └── WorkerPool.cs
-│   ├── Enums/
-│   │   └── CarState.cs
-│   └── Utils/
-│       └── TimingCalculator.cs
-├── GasStation.Services/       # Бизнес-логика
-│   ├── Generators/
-│   │   ├── CarGenerator.cs
-│   │   └── FuelTruckGenerator.cs
-│   ├── Classes/
-│   │   ├── RefuelService.cs
-│   │   └── PaymentService.cs
-│   └── Interfaces/
-│       ├── IGenerator.cs
-│       └── IService.cs
-├── GasStation.Engine/         # Движок симуляции
-│   ├── Classes/
-│   │   ├── GasStationEngine.cs
-│   │   └── GasStationFactory.cs
-│   └── Interfaces/
-│       └── IEngine.cs
+├── GasStation.Core/ # Основные модели и утилиты
+│ ├── Models/
+│ │ ├── Car.cs
+│ │ ├── FuelTruck.cs
+│ │ ├── FuelTank.cs
+│ │ ├── CarQueue.cs
+│ │ └── Constants.cs
+│ ├── Workers/
+│ │ ├── Worker.cs
+│ │ ├── Refueller.cs
+│ │ ├── Cashier.cs
+│ │ └── WorkerPool.cs
+│ ├── Enums/
+│ │ └── CarState.cs
+│ └── Utils/
+│ ├── TimingCalculator.cs
+│ └── EconomyManager.cs
+├── GasStation.Services/ # Бизнес-логика
+│ ├── Generators/
+│ │ ├── CarGenerator.cs
+│ │ └── FuelTruckGenerator.cs
+│ ├── Classes/
+│ │ ├── RefuelService.cs
+│ │ └── PaymentService.cs
+│ └── Interfaces/
+│ ├── IGenerator.cs
+│ └── IService.cs
+├── GasStation.Engine/ # Движок симуляции
+│ ├── Classes/
+│ │ ├── GasStationEngine.cs
+│ │ └── GasStationFactory.cs
+│ └── Interfaces/
+│ └── IEngine.cs
 ├── GasStation.FileOperations/ # Работа с файлами
-│   ├── Classes/
-│   │   ├── CsvConfigReader.cs
-|   |   ├── SimulationConfig.cs
-|   |   ├── SimulationStats.cs
-│   │   └── Logger.cs
-│   └── Interfaces/
-│       ├── IConfigReader.cs
-│       └── ILogger.cs
-└── GasStation/                # Запускаемый проект
-    ├── Files/
-    │   ├── config.csv
-    │   └── log.txt
-    └── Program.cs
+│ ├── Classes/
+│ │ ├── CsvConfigReader.cs
+│ │ ├── SimulationConfig.cs
+│ │ ├── SimulationStats.cs
+│ │ └── Logger.cs
+│ └── Interfaces/
+│ ├── IConfigReader.cs
+│ └── ILogger.cs
+└── GasStation/ # Запускаемый проект
+├── Files/
+│ ├── config.csv
+│ └── log.txt
+└── Program.cs
 ```
 
 ## Запуск проекта
