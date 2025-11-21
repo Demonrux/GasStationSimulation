@@ -49,7 +49,6 @@ namespace GasStation.Services
                         {
                             car.State = CarState.Completed;
                             ItemProcessed?.Invoke(car);
-                            _logger.LogInfo($"Машина {car.Id} завершила оплату и уезжает");
                         }
                         else
                         {
