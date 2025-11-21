@@ -10,7 +10,6 @@
         public int TotalFuelDelivered = 0;
 
         public event Action<int> FuelLevelChanged;
-        public event Action<int> FuelLow;
 
         public FuelTank(int capacity, int initialLevel)
         {
@@ -24,13 +23,9 @@
             {
                 if (_currentLevel < amount)
                     return false;
-
+        
                 _currentLevel -= amount;
                 FuelLevelChanged?.Invoke(_currentLevel);
-
-                if (_currentLevel <= Constants.FuelThreshold)
-                    FuelLow?.Invoke(_currentLevel);
-
                 return true;
             }
         }
