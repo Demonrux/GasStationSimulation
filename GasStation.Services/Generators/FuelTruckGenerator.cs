@@ -1,4 +1,4 @@
-﻿using GasStation.Core.Models;
+using GasStation.Core.Models;
 using GasStation.FileOperations.Interfaces;
 using GasStation.Services.Interfaces;
 
@@ -8,6 +8,7 @@ namespace GasStation.Services.Generators
     {
         private readonly TimeSpan _generationInterval;
         private readonly ILogger _logger;
+
         private int _truckId;
         private int _generatedCount;
 
@@ -22,32 +23,35 @@ namespace GasStation.Services.Generators
 
         public async Task StartGeneration(CancellationToken cancellationToken)
         {
-            _logger.LogInfo("FuelTruck генератор запущен");
-            while (!cancellationToken.IsCancellationRequested)
+            await Task.Run(async () =>
             {
-                try
+                _logger.LogInfo("FuelTruck генератор запущен");
+                while (!cancellationToken.IsCancellationRequested)
                 {
-                    await Task.Delay(_generationInterval, cancellationToken);
+                    try
+                    {
+                        await Task.Delay(_generationInterval, cancellationToken);
 
-                    var fuelAmount = Random.Shared.Next(Constants.MinFuelTruck, Constants.MaxFuelTruck);
-                    var truck = new FuelTruck(++_truckId, fuelAmount);
-                    _generatedCount++;
+                        var fuelAmount = Random.Shared.Next(Constants.MinFuelTruck, Constants.MaxFuelTruck);
+                        var truck = new FuelTruck(++_truckId, fuelAmount);
+                        _generatedCount++;
 
-                    _logger.LogInfo($"Бензовоз {truck.Id} сгенерирован (топливо {truck.FuelAmount}л)");
+                        _logger.LogInfo($"Бензовоз {truck.Id} сгенерирован (топливо {truck.FuelAmount}л)");
 
-                    Generated?.Invoke(truck);
+                        Generated?.Invoke(truck);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogWarning("Генерация бензовозов остановлена");
+                        break;
+                    }
+                    catch (Exception exception)
+                    {
+                        _logger.LogError($"Ошибка генерации: {exception.Message}");
+                        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+                    }
                 }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogWarning("Генерация бензовозов остановлена");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Ошибка генерации: {ex.Message}");
-                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-                }
-            }
+            }, cancellationToken);
         }
     }
 }
