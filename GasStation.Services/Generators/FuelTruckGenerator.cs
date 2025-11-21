@@ -32,8 +32,7 @@ namespace GasStation.Services.Generators
                     {
                         await Task.Delay(_generationInterval, cancellationToken);
 
-                        var fuelAmount = Random.Shared.Next(Constants.MinFuelTruck, Constants.MaxFuelTruck);
-                        var truck = new FuelTruck(++_truckId, fuelAmount);
+                        var truck = new FuelTruck(++_truckId, Constants.FuelTruckAmount);
                         _generatedCount++;
 
                         _logger.LogInfo($"Бензовоз {truck.Id} сгенерирован (топливо {truck.FuelAmount}л)");
