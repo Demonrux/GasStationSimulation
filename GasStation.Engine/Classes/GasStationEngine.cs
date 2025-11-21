@@ -61,48 +61,56 @@ namespace GasStation.Engine.Classes
 
         private void SetupEvents()
         {
-            _carGenerator.Generated += car =>
-            {
-                _refuelQueue.Enqueue(car);
-                _logger.LogInfo($"Машина {car.Id} прибыла на заправку (нужно {car.RequiredFuel}л)");
-            };
-
-            _fuelTruckGenerator.Generated += truck =>
-            {
-                _fuelTank.Refuel(truck.FuelAmount);
-
-                _economyManager.RecordFuelPurchase(truck.FuelAmount);
-
-                _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л " +
-                               $"за {truck.FuelAmount * _economyManager.FuelPurchasePrice} RUB " +
-                               $"Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
-            };
-
+            _carGenerator.Generated += OnCarGenerated;
+            _fuelTruckGenerator.Generated += OnFuelTruckGenerated;
+        
             foreach (var refuelService in _refuelServices)
             {
-                refuelService.ItemProcessed += car =>
-                {
-                    _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
-                    _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
-                                   $"за {car.RequiredFuel * _economyManager.FuelSellPrice}руб.");
-                    _paymentQueue.Enqueue(car);
-                    _logger.LogInfo($"Машина {car.Id} заправлена, переходит на оплату");
-                };
+                refuelService.ItemProcessed += OnCarRefueled;
             }
-
+        
             foreach (var paymentService in _paymentServices)
             {
-                paymentService.ItemProcessed += car =>
-                {
-                    _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
-                };
+                paymentService.ItemProcessed += OnCarPaid;
             }
-            _fuelTank.FuelLevelChanged += level =>
-            {
-                if (level < Constants.FuelThreshold)
-                    _logger.LogWarning($"Низкий уровень топлива: {level}л");
-            };
+        
+            _fuelTank.FuelLevelChanged += OnFuelLevelChanged;
         }
+
+         private void OnCarGenerated(Car car)
+         {
+             _refuelQueue.Enqueue(car);
+             _logger.LogInfo($"Машина {car.Id} прибыла на заправку (нужно {car.RequiredFuel}л)");
+         }
+        
+         private void OnFuelTruckGenerated(FuelTruck truck)
+         {
+             _fuelTank.Refuel(truck.FuelAmount);
+             _economyManager.RecordFuelPurchase(truck.FuelAmount);
+             _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л " +
+                            $"за {truck.FuelAmount * _economyManager.FuelPurchasePrice} RUB " +
+                            $"Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
+         }
+        
+         private void OnCarRefueled(Car car)
+         {
+             _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
+             _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
+                            $"за {car.RequiredFuel * _economyManager.FuelSellPrice}руб.");
+             _paymentQueue.Enqueue(car);
+             _logger.LogInfo($"Машина {car.Id} заправлена, переходит на оплату");
+         }
+        
+         private void OnCarPaid(Car car)
+         {
+             _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
+         }
+        
+         private void OnFuelLevelChanged(int level)
+         {
+             if (level < Constants.FuelThreshold)
+                 _logger.LogWarning($"Низкий уровень топлива: {level}л");
+         }
 
         public async Task RunSimulation()
         {
