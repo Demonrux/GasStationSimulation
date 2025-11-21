@@ -23,33 +23,31 @@ namespace GasStation.Services.Generators
 
         public async Task StartGeneration(CancellationToken cancellationToken)
         {
-            _logger.LogInfo("Car генератор запущен");
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    var delay = TimingCalculator.CarGeneration(_generationInterval);
-                    await Task.Delay(delay, cancellationToken);
-
-                    var newCarId = Interlocked.Increment(ref _carId);
-                    Interlocked.Increment(ref _generatedCount);
-
-                    var car = new Car(newCarId);
-                    _logger.LogInfo($"Машина {car.Id} сгенерирована (нужно {car.RequiredFuel}л)");
-
-                    Generated?.Invoke(car);
-                }
-                catch (OperationCanceledException)
-                {
-                    _logger.LogWarning("Генерация машин остановлена");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Ошибка генерации: {ex.Message}");
-                    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken); 
-                }
-            }
-        }
+             await Task.Run(async () =>
+             {
+                 _logger.LogInfo("Car генератор запущен");
+                 while (!cancellationToken.IsCancellationRequested)
+                 {
+                     try
+                     {
+                         var delay = TimingCalculator.CarGeneration(_generationInterval);
+                         await Task.Delay(delay, cancellationToken);
+        
+                         var newCarId = Interlocked.Increment(ref _carId);
+                         Interlocked.Increment(ref _generatedCount);
+        
+                         var car = new Car(newCarId);
+                         _logger.LogInfo($"Машина {car.Id} сгенерирована (нужно {car.RequiredFuel}л)");
+        
+                         Generated?.Invoke(car);
+                     }
+                     catch (OperationCanceledException)
+                     {
+                         _logger.LogWarning("Генерация машин остановлена");
+                         break;
+                     }
+                 }
+             }, cancellationToken);
+         }
     }
 }
