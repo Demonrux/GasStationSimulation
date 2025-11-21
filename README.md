@@ -11,7 +11,8 @@
 - **Сбор статистики** в реальном времени
 - **Гибкая конфигурация** через CSV-файлы
 ## Диаграмма классов
-<img width="2069" height="663" alt="dot_inline_dotgraph_1" src="https://github.com/user-attachments/assets/81401c5f-417e-4ae4-9947-ef66f99899ab" />
+<img width="2410" height="904" alt="dot_inline_dotgraph_1" src="https://github.com/user-attachments/assets/f60725f3-c91b-4244-a3ca-85725dc2b733" />
+
 
 
 ##  Структура решения
