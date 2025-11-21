@@ -94,13 +94,12 @@ namespace GasStation.Engine.Classes
         
          private void OnCarRefueled(Car car)
          {
-             _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
-             _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
-                            $"за {car.RequiredFuel * _economyManager.FuelSellPrice}руб.");
-             _paymentQueue.Enqueue(car);
-             _logger.LogInfo($"Машина {car.Id} заправлена, переходит на оплату");
+            _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
+            _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
+                           $"за {car.RequiredFuel * _economyManager.FuelSellPrice} RUB, переходит на оплату");
+            _paymentQueue.Enqueue(car);
          }
-        
+
          private void OnCarPaid(Car car)
          {
              _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
