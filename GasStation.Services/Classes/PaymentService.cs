@@ -15,7 +15,6 @@ namespace GasStation.Services
         private int _processedCount;
 
         public int ProcessedCount => _processedCount;
-        public string ServiceType => "Payment";
         public event Action<Car> ItemProcessed;
 
         public PaymentService(CarQueue paymentQueue, WorkerPool<Cashier> cashierPool, ILogger logger)
