@@ -26,7 +26,7 @@ namespace GasStation.Engine.Classes
         private readonly ILogger _logger;
         private readonly EconomyManager _economyManager;
 
-        private CancellationTokenSource _cts;
+        private CancellationTokenSource _cancellationTokenSourse;
         private bool _isRunning;
 
         public GasStationEngine(
@@ -111,7 +111,7 @@ namespace GasStation.Engine.Classes
                 if (_isRunning)
                     throw new InvalidOperationException("Моделирование уже запущено");
                 _isRunning = true;
-                _cts = new CancellationTokenSource();
+                _cancellationTokenSourse = new CancellationTokenSource();
                 _simulationStartTime = DateTime.Now;
             }
 
@@ -119,20 +119,20 @@ namespace GasStation.Engine.Classes
             {
                 var tasks = new List<Task>
                 {
-                    _carGenerator.StartGeneration(_cts.Token),          
-                    _fuelTruckGenerator.StartGeneration(_cts.Token),
+                    _carGenerator.StartGeneration(_cancellationTokenSourse.Token),          
+                    _fuelTruckGenerator.StartGeneration(_cancellationTokenSourse.Token),
 
                     MonitorSimulation()
                 };
 
                 foreach (var refuelService in _refuelServices)
                 {
-                    tasks.Add(Task.Run(() => refuelService.Process(_cts.Token)));
+                    tasks.Add(Task.Run(() => refuelService.Process(_cancellationTokenSourse.Token)));
                 }
 
                 foreach (var paymentService in _paymentServices)
                 {
-                    tasks.Add(Task.Run(() => paymentService.Process(_cts.Token)));
+                    tasks.Add(Task.Run(() => paymentService.Process(_cancellationTokenSourse.Token)));
                 }
 
                 await Task.WhenAll(tasks);
@@ -192,7 +192,7 @@ namespace GasStation.Engine.Classes
 
         public async Task MonitorSimulation()
         {
-            await Task.Delay(TimeSpan.FromSeconds(_config.SimulationDurationSeconds), _cts.Token);
+            await Task.Delay(TimeSpan.FromSeconds(_config.SimulationDurationSeconds), _cancellationTokenSourse.Token);
             Stop();
         }
 
@@ -205,7 +205,7 @@ namespace GasStation.Engine.Classes
             }
 
             _logger.LogWarning("Остановка моделирования...");
-            _cts.Cancel();
+            _cancellationTokenSourse.Cancel();
             _isRunning = false;
         }
     }
