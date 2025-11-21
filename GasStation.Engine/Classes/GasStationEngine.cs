@@ -126,8 +126,8 @@ namespace GasStation.Engine.Classes
             {
                 var tasks = new List<Task>
                 {
-                    _carGenerator.StartGeneration(_cancellationTokenSourse.Token),          
-                    _fuelTruckGenerator.StartGeneration(_cancellationTokenSourse.Token),
+                    Task.Run(() => _carGenerator.StartGeneration(_cancellationTokenSourse.Token)), 
+                    Task.Run(() => _fuelTruckGenerator.StartGeneration(_cancellationTokenSourse.Token)),
 
                     MonitorSimulation()
                 };
