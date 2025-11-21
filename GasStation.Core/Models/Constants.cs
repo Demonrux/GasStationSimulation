@@ -9,8 +9,7 @@
         public const double BasePaymentTime = 2.0;
         public const int MinCarFuelAmount = 10;
         public const int MaxCarFuelAmount = 40;
-        public const int MinFuelTruck = 200;
-        public const int MaxFuelTruck = 500;
+        public const int FuelTruckAmount = 400;
         public const int FuelThreshold = 100;
     }
 }
