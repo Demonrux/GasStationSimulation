@@ -1,4 +1,6 @@
-﻿namespace GasStation.FileOperations.Classes
+﻿using GasStation.Core.Utils;
+
+namespace GasStation.FileOperations.Classes
 {
     public class SimulationStats
     {
@@ -12,6 +14,11 @@
         public int MaxQueueLengthPayment { get; set; }
         public Dictionary<int, int> RefuellerStats { get; set; } = new();
         public Dictionary<int, int> CashierStats { get; set; } = new();
+        public EconomyStats EconomyStats { get; set; }
         public TimeSpan SimulationDuration { get; set; }
+        public decimal GetRefuellerSalary(int processedCars)
+             => processedCars * EconomyStats.RefuellerSalaryPerCar;
+        public decimal GetCashierSalary(int processedCars)
+            => processedCars * EconomyStats.CashierSalaryPerCar;
     }
 }

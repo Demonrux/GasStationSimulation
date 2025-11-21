@@ -9,10 +9,12 @@ namespace GasStation
     {
         static async Task Main(string[] args)
         {
+            string logPath = "C:\\Users\\Пользователь\\source\\repos\\GasStationModel\\GasStation.FileOperations\\files\\log.txt";
+            string configPath = "C:\\Users\\Пользователь\\source\\repos\\GasStationModel\\GasStation.FileOperations\\files\\config.csv";
             try
             {
+
                 IConfigReader configReader = new CsvConfigReader();
-                string configPath = "C:\\Users\\Пользователь\\source\\repos\\GasStationModel\\GasStation.FileOperations\\files\\config.csv";
 
                 if (!File.Exists(configPath))
                 {
@@ -23,7 +25,7 @@ namespace GasStation
                 Console.WriteLine($"Чтение конфигурации из: {configPath}");
                 SimulationConfig config = configReader.ReadConfig(configPath);
 
-                ILogger logger = new Logger("C:\\Users\\Пользователь\\source\\repos\\GasStationModel\\GasStation.FileOperations\\files\\log.txt");
+                ILogger logger = new Logger(logPath);
 
                 IEngine engine = GasStationFactory.Create(config, logger);
 

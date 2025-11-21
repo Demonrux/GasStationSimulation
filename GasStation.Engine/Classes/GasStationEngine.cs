@@ -1,5 +1,6 @@
 ﻿using GasStation.Core.Workers;
 using GasStation.Core.Models;
+using GasStation.Core.Utils;
 using GasStation.FileOperations.Interfaces;
 using GasStation.FileOperations.Classes;
 using GasStation.Engine.Interfaces;
@@ -20,9 +21,10 @@ namespace GasStation.Engine.Classes
         private readonly WorkerPool<Cashier> _cashierPool;
         private readonly IGenerator<Car> _carGenerator;
         private readonly IGenerator<FuelTruck> _fuelTruckGenerator;
-        private readonly IService<Car> _refuelService;
-        private readonly IService<Car> _paymentService;
+        private readonly List<IService<Car>> _refuelServices;
+        private readonly List<IService<Car>> _paymentServices; 
         private readonly ILogger _logger;
+        private readonly EconomyManager _economyManager;
 
         private CancellationTokenSource _cts;
         private bool _isRunning;
@@ -37,8 +39,9 @@ namespace GasStation.Engine.Classes
             WorkerPool<Cashier> cashierPool,
             IGenerator<Car>  carGenerator,
             IGenerator<FuelTruck> fuelTruckGenerator,
-            IService<Car> refuelService,
-            IService<Car> paymentService)
+            List<IService<Car>> refuelServices,
+            List<IService<Car>> paymentServices,
+            EconomyManager economyManager)
         {
             _config = config;
             _fuelTank = fuelTank;
@@ -48,9 +51,10 @@ namespace GasStation.Engine.Classes
             _cashierPool = cashierPool;
             _carGenerator = carGenerator;
             _fuelTruckGenerator = fuelTruckGenerator;
-            _refuelService = refuelService;
-            _paymentService = paymentService;
+            _refuelServices = refuelServices;
+            _paymentServices = paymentServices;
             _logger = logger;
+            _economyManager = economyManager;
 
             SetupEvents();
         }
@@ -66,20 +70,33 @@ namespace GasStation.Engine.Classes
             _fuelTruckGenerator.Generated += truck =>
             {
                 _fuelTank.Refuel(truck.FuelAmount);
-                _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л. Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
+
+                _economyManager.RecordFuelPurchase(truck.FuelAmount);
+
+                _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л " +
+                               $"за {truck.FuelAmount * _economyManager.FuelPurchasePrice} RUB " +
+                               $"Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
             };
 
-            _refuelService.ItemProcessed += car =>
+            foreach (var refuelService in _refuelServices)
             {
-                _paymentQueue.Enqueue(car);
-                _logger.LogInfo($"Машина {car.Id} заправлена, переходит на оплату");
-            };
+                refuelService.ItemProcessed += car =>
+                {
+                    _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
+                    _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
+                                   $"за {car.RequiredFuel * _economyManager.FuelSellPrice}руб.");
+                    _paymentQueue.Enqueue(car);
+                    _logger.LogInfo($"Машина {car.Id} заправлена, переходит на оплату");
+                };
+            }
 
-            _paymentService.ItemProcessed += car =>
+            foreach (var paymentService in _paymentServices)
             {
-                _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
-            };
-
+                paymentService.ItemProcessed += car =>
+                {
+                    _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
+                };
+            }
             _fuelTank.FuelLevelChanged += level =>
             {
                 if (level < Constants.FuelThreshold)
@@ -105,11 +122,18 @@ namespace GasStation.Engine.Classes
                     _carGenerator.StartGeneration(_cts.Token),          
                     _fuelTruckGenerator.StartGeneration(_cts.Token),
 
-                    Task.Run(() => _refuelService.Process(_cts.Token)),
-                    Task.Run(() => _paymentService.Process(_cts.Token)),
-
                     MonitorSimulation()
                 };
+
+                foreach (var refuelService in _refuelServices)
+                {
+                    tasks.Add(Task.Run(() => refuelService.Process(_cts.Token)));
+                }
+
+                foreach (var paymentService in _paymentServices)
+                {
+                    tasks.Add(Task.Run(() => paymentService.Process(_cts.Token)));
+                }
 
                 await Task.WhenAll(tasks);
 
@@ -152,6 +176,11 @@ namespace GasStation.Engine.Classes
 
                 _stats.TotalCarsRefueled = _stats.RefuellerStats.Values.Sum();
                 _stats.TotalCarsPaid = _stats.CashierStats.Values.Sum();
+
+                _stats.EconomyStats = _economyManager.GetStats();
+
+                _economyManager.PayRefuellerSalary(_stats.TotalCarsRefueled);
+                _economyManager.PayCashierSalary(_stats.TotalCarsPaid);
 
                 _logger.LogStatistics(_stats);
             }

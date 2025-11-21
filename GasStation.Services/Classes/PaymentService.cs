@@ -23,15 +23,6 @@ namespace GasStation.Services
             _paymentQueue = paymentQueue;
             _cashierPool = cashierPool;
             _logger = logger;
-
-            _cashierPool.SubscribeToWorkEvents(
-                onWorkStarted: (workerId, carId) => _logger.LogInfo($"Кассир {workerId} начал обслуживание машины {carId}"),
-                onWorkCompleted: (workerId, carId, duration) =>
-                {
-                    _logger.LogInfo($"Кассир {workerId} закончил обслуживание машины {carId} за {duration.TotalSeconds:F1}с");
-                    Interlocked.Increment(ref _processedCount);
-                }
-            );
         }
 
         public async Task Process(CancellationToken cancellationToken)

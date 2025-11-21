@@ -7,17 +7,12 @@ namespace GasStation.Services.Generators
 {
     public class CarGenerator : IGenerator<Car>
     {
-        private readonly object _counterLock = new object();
         private int _generatedCount;
         private readonly TimeSpan _generationInterval;
         private readonly ILogger _logger;
         private int _carId;
 
-        public int GeneratedCount
-        {
-            get { lock (_counterLock) return _generatedCount; }
-        }
-
+        public int GeneratedCount => _generatedCount;
         public event Action<Car> Generated;
 
         public CarGenerator(TimeSpan generationInterval, ILogger logger)
@@ -36,12 +31,8 @@ namespace GasStation.Services.Generators
                     var delay = TimingCalculator.CarGeneration(_generationInterval);
                     await Task.Delay(delay, cancellationToken);
 
-                    int newCarId;
-                    lock (_counterLock)
-                    {
-                        newCarId = ++_carId;
-                        _generatedCount++;
-                    }
+                    var newCarId = Interlocked.Increment(ref _carId);
+                    Interlocked.Increment(ref _generatedCount);
 
                     var car = new Car(newCarId);
                     _logger.LogInfo($"Машина {car.Id} сгенерирована (нужно {car.RequiredFuel}л)");

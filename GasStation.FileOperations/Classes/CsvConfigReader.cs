@@ -57,6 +57,22 @@ namespace GasStation.FileOperations.Classes
                     case "InitialFuelLevel":
                         config.InitialFuelLevel = int.Parse(value, CultureInfo.InvariantCulture);
                         break;
+                    case "FuelPurchasePrice":
+                        config.FuelPurchasePrice = decimal.Parse(value, CultureInfo.InvariantCulture);
+                        break;
+                    case "FuelSellPrice":
+                        config.FuelSellPrice = decimal.Parse(value, CultureInfo.InvariantCulture);
+                        break;
+                    case "RefuellerSalaryPerCar":
+                        config.RefuellerSalaryPerCar = decimal.Parse(value, CultureInfo.InvariantCulture);
+                        break;
+                    case "CashierSalaryPerCar":
+                        config.CashierSalaryPerCar = decimal.Parse(value, CultureInfo.InvariantCulture);
+                        break;
+                    case "InitialBalance":
+                        config.InitialBalance = decimal.Parse(value, CultureInfo.InvariantCulture);
+                        break;
+
                     default:
                         Console.WriteLine($"Неизвестный параметр конфигурации: {key}");
                         break;
@@ -88,6 +104,19 @@ namespace GasStation.FileOperations.Classes
                 errors.Add("Начальный уровень топлива не может быть отрицательным");
             if (config.InitialFuelLevel > config.FuelTankCapacity)
                 errors.Add("Начальный уровень топлива не может превышать емкость резервуара");
+
+            if (config.FuelPurchasePrice <= 0)
+                errors.Add("Цена закупки топлива должна быть положительной");
+            if (config.FuelSellPrice <= 0)
+                errors.Add("Цена продажи топлива должна быть положительной");
+            if (config.FuelSellPrice <= config.FuelPurchasePrice)
+                errors.Add("Цена продажи должна быть выше цены закупки для рентабельности");
+            if (config.RefuellerSalaryPerCar < 0)
+                errors.Add("Зарплата заправщика не может быть отрицательной");
+            if (config.CashierSalaryPerCar < 0)
+                errors.Add("Зарплата кассира не может быть отрицательной");
+            if (config.InitialBalance < 0)
+                errors.Add("Начальный баланс не может быть отрицательным");
 
             if (errors.Count > 0)
             {

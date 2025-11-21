@@ -26,15 +26,6 @@ namespace GasStation.Services.Classes
             _refuellerPool = refuellerPool;
             _fuelTank = fuelTank;
             _logger = logger;
-
-            _refuellerPool.SubscribeToWorkEvents(
-                onWorkStarted: (workerId, carId) => _logger.LogInfo($"Заправщик {workerId} начал заправку машины {carId}. Топливо: {_fuelTank.CurrentLevel}л"),
-                onWorkCompleted: (workerId, carId, duration) =>
-                {
-                    _logger.LogInfo($"Заправщик {workerId} закончил заправку машины {carId} за {duration.TotalSeconds:F1}с");
-                    Interlocked.Increment(ref _processedCount);
-                }
-            );
         }
 
         public async Task Process(CancellationToken cancellationToken)
@@ -59,7 +50,6 @@ namespace GasStation.Services.Classes
 
                         if (assigned)
                         {
-                            _logger.LogInfo($"Машина {car.Id} заправлена и отправлена на оплату");
                             car.State = CarState.WaitingForPayment;
                             ItemProcessed?.Invoke(car);
                         }

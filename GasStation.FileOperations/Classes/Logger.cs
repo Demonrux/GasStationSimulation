@@ -50,6 +50,7 @@ namespace GasStation.FileOperations.Classes
             LogInfo($"Длительность: {config.SimulationDurationSeconds} сек");
             LogInfo($"Работники: {config.RefuellerCount} заправщиков, {config.CashierCount} кассиров");
             LogInfo($"Топливо: {config.InitialFuelLevel}/{config.FuelTankCapacity}л");
+            LogInfo($"Начальный баланс:{config.InitialBalance} RUB");
             LogInfo("=" + new string('=', 50));
         }
 
@@ -58,9 +59,13 @@ namespace GasStation.FileOperations.Classes
             var separator = new string('=', 60);
 
             Console.WriteLine(separator);
-            Console.WriteLine("СТАТИСТИКА МОДЕЛИРОВАНИЯ");
+            Console.WriteLine("Статистика моделирования");
             Console.WriteLine(separator);
             Console.WriteLine($"Длительность моделирования: {stats.SimulationDuration.TotalSeconds:F1} сек");
+            Console.WriteLine($"Баланс: {stats.EconomyStats.Balance} RUB");
+            Console.WriteLine($"Выручка: {stats.EconomyStats.TotalRevenue} RUB");
+            Console.WriteLine($"Расходы: {stats.EconomyStats.TotalExpenses} RUB");
+            Console.WriteLine($"Прибыль: {stats.EconomyStats.Profit} RUB");
             Console.WriteLine($"Всего сгенерировано машин: {stats.TotalCarsGenerated}");
             Console.WriteLine($"Обслужено машин (заправка): {stats.TotalCarsRefueled}");
             Console.WriteLine($"Обслужено машин (оплата): {stats.TotalCarsPaid}");
@@ -72,38 +77,44 @@ namespace GasStation.FileOperations.Classes
 
             Console.WriteLine("Статистика заправщиков:");
             foreach (var stat in stats.RefuellerStats)
-                Console.WriteLine($"  • Заправщик {stat.Key}: {stat.Value} машин");
+            {
+                var salary = stats.GetRefuellerSalary(stat.Value);
+                Console.WriteLine($"  • Заправщик {stat.Key}: {stat.Value} машин, зарплата: {salary} руб.");
+            }
 
             Console.WriteLine("Статистика кассиров:");
             foreach (var stat in stats.CashierStats)
-                Console.WriteLine($"  • Кассир {stat.Key}: {stat.Value} машин");
+            {
+                var salary = stats.GetCashierSalary(stat.Value);
+                Console.WriteLine($"  • Кассир {stat.Key}: {stat.Value} машин, зарплата: {salary} руб.");
+            }
 
             Console.WriteLine(separator);
 
             lock (_lock)
             {
                 File.AppendAllText(_logFilePath, separator + Environment.NewLine);
-                File.AppendAllText(_logFilePath, "СТАТИСТИКА МОДЕЛИРОВАНИЯ" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, "Статистика моделирования" + Environment.NewLine);
                 File.AppendAllText(_logFilePath, separator + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Длительность моделирования: {stats.SimulationDuration.TotalSeconds:F1} сек" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Всего сгенерировано машин: {stats.TotalCarsGenerated}" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Обслужено машин (заправка): {stats.TotalCarsRefueled}" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Обслужено машин (оплата): {stats.TotalCarsPaid}" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Всего бензовозов: {stats.TotalFuelTrucks}" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Доставлено топлива: {stats.TotalFuelDelivered}л" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Топлива в резервуаре: {stats.FinalFuelLevel}л" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Максимальная очередь заправки: {stats.MaxQueueLengthRefuel} машин" + Environment.NewLine);
-                File.AppendAllText(_logFilePath, $"Максимальная очередь оплаты: {stats.MaxQueueLengthPayment} машин" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, $"Длительность моделирования: {stats.SimulationDuration.TotalSeconds} сек" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, $"Баланс: {stats.EconomyStats.Balance} RUB" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, $"Выручка: {stats.EconomyStats.TotalRevenue} RUB" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, $"Расходы: {stats.EconomyStats.TotalExpenses} RUB" + Environment.NewLine);
+                File.AppendAllText(_logFilePath, $"Прибыль: {stats.EconomyStats.Profit} RUB" + Environment.NewLine);
 
                 File.AppendAllText(_logFilePath, "Статистика заправщиков:" + Environment.NewLine);
                 foreach (var stat in stats.RefuellerStats)
-                    File.AppendAllText(_logFilePath, $"  • Заправщик {stat.Key}: {stat.Value} машин" + Environment.NewLine);
+                {
+                    var salary = stats.GetRefuellerSalary(stat.Value);
+                    File.AppendAllText(_logFilePath, $"  • Заправщик {stat.Key}: {stat.Value} машин, зарплата: {salary} руб." + Environment.NewLine);
+                }
 
                 File.AppendAllText(_logFilePath, "Статистика кассиров:" + Environment.NewLine);
                 foreach (var stat in stats.CashierStats)
-                    File.AppendAllText(_logFilePath, $"  • Кассир {stat.Key}: {stat.Value} машин" + Environment.NewLine);
-
-                File.AppendAllText(_logFilePath, separator + Environment.NewLine);
+                {
+                    var salary = stats.GetCashierSalary(stat.Value);
+                    File.AppendAllText(_logFilePath, $"  • Кассир {stat.Key}: {stat.Value} машин, зарплата: {salary} руб." + Environment.NewLine);
+                }
             }
         }
     }
