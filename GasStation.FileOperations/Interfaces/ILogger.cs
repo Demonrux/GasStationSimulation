@@ -1,8 +1,8 @@
-﻿using GasStation.FileOperations.Classes;
+using GasStation.FileOperations.Classes;
 
 namespace GasStation.FileOperations.Interfaces
 {
-    public interface ILogger
+    public interface ILogger : IDisposable
     {
         void LogInfo(string message);
         void LogWarning(string message);
