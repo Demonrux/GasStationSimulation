@@ -1,16 +1,18 @@
-﻿using GasStation.Core.Workers;
+using GasStation.Core.Workers;
 using GasStation.Core.Models;
 using GasStation.Core.Utils;
 using GasStation.FileOperations.Interfaces;
 using GasStation.FileOperations.Classes;
 using GasStation.Engine.Interfaces;
 using GasStation.Services.Interfaces;
+using GasStation.Core.Enums;
 
 namespace GasStation.Engine.Classes
 {
     public class GasStationEngine : IEngine
     {
         private readonly object _lock = new object();
+        private readonly object _statsLock = new object();
         private readonly SimulationConfig _config;
         private readonly SimulationStats _stats = new();
         private DateTime _simulationStartTime;
@@ -63,53 +65,76 @@ namespace GasStation.Engine.Classes
         {
             _carGenerator.Generated += OnCarGenerated;
             _fuelTruckGenerator.Generated += OnFuelTruckGenerated;
-        
+
             foreach (var refuelService in _refuelServices)
             {
                 refuelService.ItemProcessed += OnCarRefueled;
             }
-        
+
             foreach (var paymentService in _paymentServices)
             {
                 paymentService.ItemProcessed += OnCarPaid;
             }
-        
+
             _fuelTank.FuelLevelChanged += OnFuelLevelChanged;
         }
 
-         private void OnCarGenerated(Car car)
-         {
-             _refuelQueue.Enqueue(car);
-             _logger.LogInfo($"Машина {car.Id} прибыла на заправку (нужно {car.RequiredFuel}л)");
-         }
-        
-         private void OnFuelTruckGenerated(FuelTruck truck)
-         {
-             _fuelTank.Refuel(truck.FuelAmount);
-             _economyManager.RecordFuelPurchase(truck.FuelAmount);
-             _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л " +
-                            $"за {truck.FuelAmount * _economyManager.FuelPurchasePrice} RUB " +
-                            $"Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
-         }
-        
-         private void OnCarRefueled(Car car)
-         {
-            _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
-            _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
-                           $"за {car.RequiredFuel * _economyManager.FuelSellPrice} RUB, переходит на оплату");
-            _paymentQueue.Enqueue(car);
-         }
+        private void OnCarGenerated(Car car)
+        {
+            _refuelQueue.Enqueue(car);
+            _logger.LogInfo($"Машина {car.Id} прибыла на заправку (нужно {car.RequiredFuel}л)");
+        }
 
-         private void OnCarPaid(Car car)
-         {
-             _logger.LogInfo($"Машина {car.Id} обслужена и уезжает");
-         }
-        
-         private void OnFuelLevelChanged(int level)
-         {
-             if (level < Constants.FuelThreshold)
-                 _logger.LogWarning($"Низкий уровень топлива: {level}л");
-         }
+        private void OnFuelTruckGenerated(FuelTruck truck)
+        {
+            _fuelTank.Refuel(truck.FuelAmount);
+            _economyManager.RecordFuelPurchase(truck.FuelAmount);
+            _logger.LogInfo($"Бензовоз {truck.Id} доставил {truck.FuelAmount}л " +
+                           $"за {truck.FuelAmount * _economyManager.FuelPurchasePrice} RUB " +
+                           $"Теперь в резервуаре: {_fuelTank.CurrentLevel}л");
+        }
+
+        private void OnCarRefueled(Car car)
+        {
+            if (car == null) return;
+
+            try
+            {
+                lock (_statsLock) { _stats.TotalCarsRefueled++; }
+                car.State = CarState.WaitingForPayment;
+                _economyManager.RecordFuelSale(car.RequiredFuel, car.Id);
+                _logger.LogInfo($"Машина {car.Id} заправлена на {car.RequiredFuel}л " +
+                          $"за {car.RequiredFuel * _economyManager.FuelSellPrice} RUB, переходит на оплату");
+                _paymentQueue.Enqueue(car);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Ошибка обработки заправки {car.Id}: {ex.Message}");
+            }
+        }
+
+        private void OnCarPaid(Car car)
+        {
+            if (car == null) return;
+
+            try
+            {
+                lock (_statsLock) { _stats.TotalCarsPaid++; }
+                car.State = CarState.Completed;
+                _logger.LogInfo($"Машина {car.Id} обслужена и уезжает. " +
+                               $"Всего оплачено: {_stats.TotalCarsPaid}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Ошибка обработки оплаты {car.Id}: {ex.Message}");
+            }
+        }
+
+        private void OnFuelLevelChanged(int level)
+        {
+            if (level < Constants.FuelThreshold)
+                _logger.LogWarning($"Низкий уровень топлива: {level}л");
+        }
 
         public async Task RunSimulation()
         {
@@ -159,38 +184,51 @@ namespace GasStation.Engine.Classes
             finally
             {
                 _logger.LogInfo("Моделирование завершено");
-                (_logger as IDisposable)?.Dispose();
+                _logger?.Dispose();  
+                _cancellationTokenSourse?.Dispose();
                 _isRunning = false;
             }
         }
-        
-         public void Dispose()
-         {
-             (_logger as IDisposable)?.Dispose();
-             _cancellationTokenSourse?.Dispose();
-         }
+
+        public void Dispose()
+        {
+            _carGenerator.Generated -= OnCarGenerated;
+            _fuelTruckGenerator.Generated -= OnFuelTruckGenerated;
+
+            foreach (var refuelService in _refuelServices)
+            {
+                refuelService.ItemProcessed -= OnCarRefueled;
+            }
+
+            foreach (var paymentService in _paymentServices)
+            {
+                paymentService.ItemProcessed -= OnCarPaid;
+            }
+
+            _fuelTank.FuelLevelChanged -= OnFuelLevelChanged;
+            (_logger as IDisposable)?.Dispose();
+            _cancellationTokenSourse?.Dispose();
+        }
 
         private void CollectAndLogStatistics()
         {
             try
             {
                 _stats.SimulationDuration = DateTime.Now - _simulationStartTime;
-
-                _stats.TotalCarsGenerated = _carGenerator.GeneratedCount;
-                _stats.TotalFuelTrucks = _fuelTruckGenerator.GeneratedCount;
                 _stats.FinalFuelLevel = _fuelTank.CurrentLevel;
-
                 _stats.MaxQueueLengthRefuel = _refuelQueue.MaxQueueLength;
                 _stats.MaxQueueLengthPayment = _paymentQueue.MaxQueueLength;
 
-                _stats.RefuellerStats = _refuellerPool.GetWorkers().ToDictionary(workers => workers.Id,workers => workers.ProcessedCount);
-                _stats.CashierStats = _cashierPool.GetWorkers().ToDictionary(workers => workers.Id,workers => workers.ProcessedCount);
+                _stats.TotalCarsGenerated = _carGenerator.GeneratedCount;
+                _stats.TotalFuelTrucks = _fuelTruckGenerator.GeneratedCount;
+
+                var refuellers = _refuellerPool.GetWorkers().ToList();
+                var cashiers = _cashierPool.GetWorkers().ToList();
+
+                _stats.RefuellerStats = refuellers.ToDictionary(w => w.Id, w => w.ProcessedCount);
+                _stats.CashierStats = cashiers.ToDictionary(w => w.Id, w => w.ProcessedCount);
 
                 _stats.TotalFuelDelivered = _fuelTank.TotalFuelDelivered;
-
-                _stats.TotalCarsRefueled = _stats.RefuellerStats.Values.Sum();
-                _stats.TotalCarsPaid = _stats.CashierStats.Values.Sum();
-
                 _stats.EconomyStats = _economyManager.GetStats();
 
                 _economyManager.PayRefuellerSalary(_stats.TotalCarsRefueled);
@@ -198,9 +236,9 @@ namespace GasStation.Engine.Classes
 
                 _logger.LogStatistics(_stats);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                _logger.LogError($"Ошибка при сборе статистики: {ex.Message}");
+                _logger.LogError($"Ошибка при сборе статистики: {exception.Message}");
             }
         }
 
