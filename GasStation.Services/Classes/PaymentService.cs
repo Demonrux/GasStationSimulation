@@ -1,4 +1,4 @@
-﻿using GasStation.Core.Models;
+using GasStation.Core.Models;
 using GasStation.Core.Workers;
 using GasStation.Core.Utils;
 using GasStation.Core.Enums;
@@ -34,46 +34,41 @@ namespace GasStation.Services
                 if (car != null)
                 {
                     _logger.LogInfo($"Обработка оплаты машины {car.Id}, в очереди: {_paymentQueue.Count} машин");
-
-                    try
-                    {
-                        car.State = CarState.Paying;
-
-                        var assigned = await _cashierPool.TryAssignWork(
-                            car,
-                            cashier => true,
-                            cancellationToken
-                        );
-
-                        if (assigned)
-                        {
-                            car.State = CarState.Completed;
-                            ItemProcessed?.Invoke(car);
-                        }
-                        else
-                        {
-                            car.State = CarState.WaitingForPayment;
-                            _paymentQueue.Enqueue(car);
-                            _logger.LogInfo($"Машина {car.Id} возвращена в очередь оплаты - нет свободных кассиров");
-                            await Task.Delay(TimingCalculator.RetryDelay, cancellationToken);
-                        }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        _logger.LogWarning("Оплата остановлена");
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Ошибка при оплате машины {car.Id}: {ex.Message}");
-                        car.State = CarState.WaitingForPayment;
-                        _paymentQueue.Enqueue(car);
-                    }
+                    await ProcessPayment(car, cancellationToken);
                 }
                 else
                 {
                     await Task.Delay(TimingCalculator.RetryDelay, cancellationToken);
                 }
+            }
+        }
+
+        private async Task ProcessPayment(Car car, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var assigned = await _cashierPool.TryAssignWork(car, cashier => true, cancellationToken);
+
+                if (assigned)
+                {
+                    ItemProcessed?.Invoke(car);
+                }
+                else
+                {
+                    _paymentQueue.Enqueue(car);
+                    _logger.LogInfo($"Машина {car.Id} возвращена в очередь оплаты - нет свободных кассиров");
+                    await Task.Delay(TimingCalculator.RetryDelay, cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Оплата остановлена");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Ошибка при оплате машины {car.Id}: {ex.Message}");
+                _paymentQueue.Enqueue(car);
             }
         }
     }
