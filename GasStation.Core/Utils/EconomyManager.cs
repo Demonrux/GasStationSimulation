@@ -1,4 +1,4 @@
-﻿namespace GasStation.Core.Utils
+namespace GasStation.Core.Utils
 {
     public class EconomyStats
     {
